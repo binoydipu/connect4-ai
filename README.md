@@ -24,24 +24,43 @@ Play solo against a smart bot in this timeless grid-based battle.
   - Retro-style font with `PressStart2P`
   - Bold colors and smooth grid layout
   - Winning tiles are highlighted for clarity
+  - Drop animation for each move adds visual polish
   - Designed for dark backgrounds with glowing effects
 
+- 🔊 **Sound Effects**
+  - Satisfying drop sound on player and AI moves
+  - Optional celebratory sound for wins
+  
 ---
 
 ## 🚀 Getting Started
 
-1. **Clone the repo**
-   ```bash
-   git clone https://github.com/your-username/connect4-ai.git
-   cd connect4-ai
+### Option 1: Download for Android 📱
 
-2. Install dependencies
+You can download the latest Android `.apk` directly from the [Releases](https://github.com/binoydipu/connect4-ai/releases) page.
+
+1. Go to the [Releases](https://github.com/binoydipu/connect4-ai/releases)
+2. Download the latest `.apk` file
+3. Install it on your Android device (you may need to allow unknown sources)
+
+---
+
+### Option 2: Run from Source (Flutter)
+
+1. **Clone the repo**
+
+    ```bash
+    git clone https://github.com/binoydipu/connect4-ai.git
+    cd connect4-ai
+    ```
+
+2. **Install dependencies**
 
     ```bash
     flutter pub get
     ```
 
-3. Run the app
+3. **Run the app**
 
     ```bash
     flutter run
