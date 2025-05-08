@@ -7,6 +7,7 @@ import 'package:connect4/utils/buttons/control_button.dart';
 import 'package:connect4/utils/dialogs/reset_dialog.dart';
 import 'package:connect4/utils/get_valid_row.dart';
 import 'package:connect4/utils/winning_condition.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -24,8 +25,13 @@ class _HomePageState extends State<HomePage> {
   late int scorePlayer;
   late int scoreAI;
   late bool isAiThinking;
+  late bool isLocked;
   late String? isGameOver;
   late List<int> winningPositions;
+
+  // audio
+  late bool playSounds;
+  late double soundVolume;
 
   @override
   void initState() {
@@ -36,7 +42,10 @@ class _HomePageState extends State<HomePage> {
     scoreAI = 0;
     winningPositions = [];
     isAiThinking = false;
+    isLocked = false;
     isGameOver = null;
+    playSounds = true;
+    soundVolume = 1.0;
     _resetGame();
     super.initState();
   }
@@ -122,6 +131,7 @@ class _HomePageState extends State<HomePage> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: boardSize,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
@@ -130,7 +140,9 @@ class _HomePageState extends State<HomePage> {
                     itemBuilder: (context, index) {
                       return GestureDetector(
                         onTap: () {
-                          if (winningPositions.isEmpty) {
+                          if (!isLocked &&
+                              winningPositions.isEmpty &&
+                              !isAiThinking) {
                             _tapped(index);
                           }
                         },
@@ -255,10 +267,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _tapped(int index) async {
+    if (isLocked) return; // still animation showing
+
+    isLocked = true; // LOCK
     int col = index % 7;
     int row = getFirstEmptyRowInColumn(board, col);
-    if (row == -1) return; // If the column is full, do nothing
+    if (row == -1) {
+      isLocked = false;
+      return; // If the column is full, do nothing
+    }
 
+    await _showDropAnimation(col, playerSymbol);
     setState(() {
       board[row * 7 + col] = playerSymbol;
       isAiThinking = true;
@@ -269,6 +288,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         isAiThinking = false;
       });
+      isLocked = false;
       return;
     }
 
@@ -279,17 +299,46 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         isAiThinking = false;
       });
+      isLocked = false;
       return;
     }
 
     int aiMove = await findBestMove(board: board);
+    setState(() {
+      isAiThinking = false;
+    });
 
+    await _showDropAnimation(aiMove % 7, aiSymbol);
     setState(() {
       isAiThinking = false;
       board[aiMove] = aiSymbol;
     });
 
     _isGameOver();
+    isLocked = false; // UNLOCK
+  }
+
+  Future<void> _showDropAnimation(int col, String who) async {
+    for (int r = 0; r < 6; r++) {
+      int index = r * 7 + col;
+      if (r > 0) {
+        board[(r - 1) * 7 + col] = ''; // clear prev cell
+      }
+      board[index] = who;
+      setState(() {}); // Trigger repaint
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // Stop if the cell below is already occupied (safety check)
+      if (r + 1 == 6 || board[(r + 1) * 7 + col] != '') {
+        if (playSounds) {
+          FlameAudio.play('drop.wav', volume: soundVolume);
+        }
+        break;
+      }
+    }
+    // Wait briefly on final cell
+    await Future.delayed(const Duration(milliseconds: 200));
+    setState(() {});
   }
 
   Widget _aiThinkingWidget() {
@@ -394,6 +443,9 @@ class _HomePageState extends State<HomePage> {
         result == playerSymbol ? scorePlayer++ : scoreAI++;
         // await showWinDialog(winner: result, context: context);
         winningPositions = getWinningPositions(board);
+      }
+      if (playSounds) {
+        FlameAudio.play('win.wav', volume: soundVolume);
       }
       return true;
     }
